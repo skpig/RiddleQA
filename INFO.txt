@@ -1,0 +1,5 @@
+noEntity_cnt =1354
+noDesc_cnt =1504
+noEntityAns_cnt =141
+noDescAns_cnt =158
+total =4000
