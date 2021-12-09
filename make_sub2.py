@@ -1,9 +1,4 @@
 import json
-from os import terminal_size
-import pickle
-import re
-
-import jieba
 import requests
 from tqdm import tqdm
 
@@ -13,34 +8,6 @@ from tqdm import tqdm
 # http://shuyantech.com/api/cnprobase/concept?q= #! 输入实体返回实体概念列表
 # http://shuyantech.com/api/entitylinking/cutsegment?q= #!分词筛选出现的概念列表
 
-# 方案2:对于hint,手动筛选归类一下
-# 对于答案:DESC词条用于匹配,其余词条对应HINT(本身可也以用于对应)
-
-# reg = "[\[\],.;\']"
-# def remove_Punctuation(text):
-#     text = re.sub(reg,' ',text)
-#     return text.strip()
-
-
-
-# def get_StopWord():
-#     with open("stopword.pkl", "rb") as f:
-#         l = pickle.load(f)
-#         f.close()
-#     return l
-
-# stopWord = get_StopWord()
-
-# def remove_StopWord(l):
-#     l1 = []
-#     for w in l:
-#         if w in stopWord:
-#             pass
-#         else:
-#             l1.append(w)
-#     return l1
-
-# 判断1:只考虑同一层实体,实体与实体进行匹配
 
 # 输入单词或短语,返回实体列表列表(取代http://shuyantech.com/api/entitylinking/cutsegment?q=的更精确功能)
 def word2entityL(w):
@@ -71,55 +38,6 @@ def entity2desc(e):
     return ""
         
 
-
-def is_Chinese(w):
-    for ch in w:
-        if '\u4e00' > ch or ch > '\u9fff':
-            return False
-    return True
-
-# 输入单词或短语列表,返回实体列表
-def wordL2entityL(w_l):
-    e_list = []
-    for w in w_l:
-        if is_Chinese(w):
-            e_list = e_list + word2entityL(w)
-    return list(set(e_list))
-
-# 输入一个实体,返回下一层单词列表
-def entity2NwordL(e, mode=0):
-    url = "http://shuyantech.com/api/cndbpedia/avpair?q=" + e + "&apikey=6474c03336e13f7d130ab3eadff84b8"
-    rw_l = requests.get(url)
-    rw_l = rw_l.json()
-
-    w_l = []
-    for w in rw_l["ret"]:
-        if mode == 0:
-            w_l.append(w[1])
-        elif mode == 1:
-            if(len(w[1]) < 15):
-                w_l.append(w[1])
-    return list(set(w_l))
-
-# 输入一个实体,返回下一层实体列表
-def entity2NentityL(e, mode=0):
-    w_l = entity2NwordL(e, mode)
-    e_l = wordL2entityL(w_l)
-    return list(set(e_l))
-
-# 输入实体列表,返回下一层实体列表
-def entityL2NentityL(e_l):
-    e_list = []
-    e_listR = []
-    for e in tqdm(e_l):
-        e_listR = e_listR + entity2NentityL(e, 0)
-        e_list = e_list + entity2NentityL(e, 1)
-    return list(set(e_list)), list(set(e_listR))
-
-# 对于超长词汇的处理:不进行下一步的搜索,但是分词,保留在当前列表中
-
-ban = ["汉语", "词语", "词汇", "字词", "汉字", "语言"]
-
 n = 4000
 with open("test.jsonl", encoding='utf-8') as f1:
     with open("new2.json", "w", encoding='utf-8') as f3: 
@@ -130,12 +48,12 @@ with open("test.jsonl", encoding='utf-8') as f1:
             noDescAns_cnt = 0
             for i in tqdm(range(n)):
                 line = f1.readline()
-                d_line = json.loads(line)
+                d_line = json.loads(line) #json按照dict形式存储
                 # 对于choice,需要对于每一个list获得entity
-                choice_list = d_line["choice"]
-                label = d_line["label"]
-                entity_list = []
-                desc_list = []
+                choice_list = d_line["choice"] # choice列表
+                label = d_line["label"] # label
+                entity_list = [] # choice对应的entity列表
+                desc_list = [] # choice对应的entity的desc列表
 
                 entity2_list = []
                 desc2_list = []
@@ -147,6 +65,7 @@ with open("test.jsonl", encoding='utf-8') as f1:
                     c_descL = []
                     c2_descL = []
 
+                    # 获得entity列表
                     if len(c_entityL) == 0:
                         noEntity_cnt += 1
                         if cnt == label:
@@ -158,6 +77,7 @@ with open("test.jsonl", encoding='utf-8') as f1:
                         entity2_list.append(c_entityL)
                         entity_list.append(c_entityL)
 
+                    # 获得desc列表
                     flag = True
                     for e in c_entityL:
                         e_descL= entity2desc(e) # entity desc
@@ -189,7 +109,7 @@ with open("test.jsonl", encoding='utf-8') as f1:
                 json.dump(d_line, f3, ensure_ascii=False)   
                 f3.write('\n')             
 
-
+# 统计结果
 with open("INFO.txt", "w", encoding='utf-8') as f:
     str = "noEntity_cnt =" + str(noEntity_cnt) + "\n" + "noDesc_cnt =" + str(noDesc_cnt) + "\n" + \
         "noEntityAns_cnt =" + str(noEntityAns_cnt) + "\n" + "noDescAns_cnt =" + str(noDescAns_cnt) + "\n" + \
