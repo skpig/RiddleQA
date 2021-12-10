@@ -96,8 +96,9 @@ def load_data(tokenizer):
     # train_data = {'input_ids': [], 'type_ids': [], 'labels': []}
     # with jsonlines.open("Data/train.jsonl", 'r') as f:
     #     for line in f:
-    #         tokenized_input = tokenizer(text=[line['riddle']] * 5,  text_pair=line['choice'],
-    #                                     padding=True, truncation=True, max_length=512   )
+    #         choice_list = [choice + "[DESC]" + ' '.join(line['desc'][i]) for i, choice in enumerate(line['choice'])]
+    #         tokenized_input = tokenizer(text=[line['riddle']] * 5,  text_pair=choice_list,
+    #                                     padding=True, truncation=True, max_length=256)
     #         train_data['input_ids'].append(tokenized_input['input_ids'])
     #         train_data['type_ids'].append(tokenized_input['token_type_ids'])
     #         train_data['labels'].append(line['label'])
@@ -105,8 +106,9 @@ def load_data(tokenizer):
     # valid_data = {'input_ids': [], 'type_ids': [], 'labels': []}
     # with jsonlines.open("Data/valid.jsonl", 'r') as f:
     #     for line in f:
-    #         tokenized_input = tokenizer(text=[line['riddle']] * 5, text_pair=line['choice'],
-    #                                     padding=True, truncation=True, max_length=512)
+    #         choice_list = [choice + "[DESC]" + ' '.join(line['desc'][i]) for i, choice in enumerate(line['choice'])]
+    #         tokenized_input = tokenizer(text=[line['riddle']] * 5, text_pair=choice_list,
+    #                                     padding=True, truncation=True, max_length=256)
     #         valid_data['input_ids'].append(tokenized_input['input_ids'])
     #         valid_data['type_ids'].append(tokenized_input['token_type_ids'])
     #         valid_data['labels'].append(line['label'])
@@ -129,6 +131,11 @@ def load_model():
         "hfl/chinese-roberta-wwm-ext-large")  # "nghuyong/ernie-1.0" "hfl/chinese-roberta-wwm-ext-large"
     model = AutoModelForMultipleChoice.from_pretrained("hfl/chinese-roberta-wwm-ext-large")  # "nghuyong/ernie-1.0"
     collator = MyCollator(tokenizer)
+
+    add_tokens = ['[DESC]']
+    num_added_toks = tokenizer.add_tokens(add_tokens)
+    assert num_added_toks == len(add_tokens)
+    model.resize_token_embeddings(len(tokenizer))
 
     return model, tokenizer, collator
 
@@ -282,7 +289,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args.world_size = args.gpus * args.nodes  #
     os.environ['MASTER_ADDR'] = 'localhost'  #
-    os.environ['MASTER_PORT'] = '123456'  #
+    os.environ['MASTER_PORT'] = '123453'  #
     os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2,3'
 
     print("Loading Model......")

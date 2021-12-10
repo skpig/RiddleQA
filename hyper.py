@@ -2,7 +2,7 @@ device_no = [0,1,2,3]
 gpus = 4
 assert gpus == len(device_no)
 nodes = 1
-model_name = 'roberta'  # 'ernie' 'roberta'
+model_name = 'roberta_entityDesc'  # 'ernie' 'roberta'
 """Train"""
 eval_every = 100
 save_every = 500
@@ -10,7 +10,7 @@ train_epoch = 20
 
 dropout = 0.1
 
-train_batch_size = 4
+train_batch_size = 1
 batch_size = 32
 update_freq = int(batch_size / (train_batch_size * gpus))
 assert update_freq > 0
